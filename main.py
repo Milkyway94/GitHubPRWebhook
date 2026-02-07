@@ -63,7 +63,10 @@ def github_webhook():
         action = payload.get('action', '')
         pr = payload.get('pull_request', {})
         sender = payload.get('sender', {})
+        repo = payload.get('repository', {})
         
+        repo_name = repo.get('name', 'Unknown')
+        repo_full_name = repo.get('full_name', 'Unknown')
         pr_number = pr.get('number', 0)
         pr_title = pr.get('title', 'No title')
         pr_url = pr.get('html_url', '')
@@ -82,7 +85,7 @@ def github_webhook():
             icon = "🆕"
             message = (
                 f"{icon} <b>New Pull Request</b>\n\n"
-                f"<b>#{pr_number}</b> {pr_title}\n"
+                f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
                 f"👤 <b>Author:</b> {pr_author}\n"
             )
             if pr_body:
@@ -94,7 +97,7 @@ def github_webhook():
                 icon = "✅"
                 message = (
                     f"{icon} <b>Pull Request Merged</b>\n\n"
-                    f"<b>#{pr_number}</b> {pr_title}\n"
+                    f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
                     f"👤 <b>Merged by:</b> {sender.get('login', 'Unknown')}\n"
                 )
                 if pr_body:
@@ -104,7 +107,7 @@ def github_webhook():
                 icon = "❌"
                 message = (
                     f"{icon} <b>Pull Request Closed</b>\n\n"
-                    f"<b>#{pr_number}</b> {pr_title}\n"
+                    f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
                     f"👤 <b>Closed by:</b> {sender.get('login', 'Unknown')}\n"
                 )
                 if pr_body:
@@ -115,7 +118,7 @@ def github_webhook():
             icon = "🔄"
             message = (
                 f"{icon} <b>Pull Request Reopened</b>\n\n"
-                f"<b>#{pr_number}</b> {pr_title}\n"
+                f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
                 f"👤 <b>Reopened by:</b> {sender.get('login', 'Unknown')}\n"
             )
             if pr_body:
@@ -126,7 +129,7 @@ def github_webhook():
             icon = "👀"
             message = (
                 f"{icon} <b>Pull Request Ready for Review</b>\n\n"
-                f"<b>#{pr_number}</b> {pr_title}\n"
+                f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
                 f"👤 <b>Author:</b> {pr_author}\n"
             )
             if pr_body:
@@ -145,10 +148,12 @@ def github_webhook():
         action = payload.get('action', '')
         pr = payload.get('pull_request', {})
         review = payload.get('review', {})
+        repo = payload.get('repository', {})
         
         if action != 'submitted':
             return jsonify({"status": "ignored"}), 200
         
+        repo_name = repo.get('name', 'Unknown')
         pr_number = pr.get('number', 0)
         pr_title = pr.get('title', 'No title')
         pr_url = pr.get('html_url', '')
@@ -170,7 +175,7 @@ def github_webhook():
         
         message = (
             f"{icon} <b>PR Review: {state_text}</b>\n\n"
-            f"<b>#{pr_number}</b> {pr_title}\n"
+            f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
             f"👤 <b>Reviewer:</b> {reviewer}\n"
             f"🔗 <a href=\"{pr_url}\">View PR</a>"
         )
@@ -187,7 +192,9 @@ def github_webhook():
         
         pr = payload.get('pull_request', {})
         comment = payload.get('comment', {})
+        repo = payload.get('repository', {})
         
+        repo_name = repo.get('name', 'Unknown')
         pr_number = pr.get('number', 0)
         pr_title = pr.get('title', 'No title')
         pr_url = pr.get('html_url', '')
@@ -196,7 +203,7 @@ def github_webhook():
         
         message = (
             f"💬 <b>New Review Comment</b>\n\n"
-            f"<b>#{pr_number}</b> {pr_title}\n"
+            f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
             f"👤 <b>By:</b> {commenter}\n"
             f"💭 {comment_body}...\n"
             f"🔗 <a href=\"{pr_url}\">View PR</a>"
