@@ -75,66 +75,102 @@ def github_webhook():
         merged = pr.get('merged', False)
         pr_body = pr.get('body', '').strip()
         
+        # Additional PR info
+        additions = pr.get('additions', 0)
+        deletions = pr.get('deletions', 0)
+        changed_files = pr.get('changed_files', 0)
+        commits_count = pr.get('commits', 0)
+        comments_count = pr.get('comments', 0)
+        review_comments_count = pr.get('review_comments', 0)
+        requested_reviewers = pr.get('requested_reviewers', [])
+        reviewers_count = len(requested_reviewers)
+        
+        base_branch = pr.get('base', {}).get('ref', 'main')
+        head_branch = pr.get('head', {}).get('ref', 'unknown')
+        
         # Truncate description if too long
         if pr_body:
-            if len(pr_body) > 300:
-                pr_body = pr_body[:300] + "..."
+            if len(pr_body) > 200:
+                pr_body = pr_body[:200] + "..."
         
         # Format message based on action
         if action == 'opened':
             icon = "🆕"
             message = (
-                f"{icon} <b>New Pull Request</b>\n\n"
-                f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-                f"👤 <b>Author:</b> {pr_author}\n"
+                f"{icon} <b>Pull Request | {repo_full_name} #{pr_number}</b>\n"
+                f"<b>+{additions}</b> <b>-{deletions}</b>\n\n"
+                f"<b>{pr_title}</b>\n\n"
             )
             if pr_body:
-                message += f"📝 {pr_body}\n"
-            message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
+                message += f"{pr_body}\n\n"
+            message += (
+                f"👤 <b>{pr_author}</b> wants to merge {commits_count} commit(s) from "
+                f"<code>{head_branch}</code> into <code>{base_branch}</code>\n\n"
+                f"📊 {reviewers_count} Reviewers • {comments_count + review_comments_count} Comments • "
+                f"{changed_files} Files changed\n\n"
+                f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+            )
         
         elif action == 'closed':
             if merged:
                 icon = "✅"
                 message = (
-                    f"{icon} <b>Pull Request Merged</b>\n\n"
-                    f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-                    f"👤 <b>Merged by:</b> {sender.get('login', 'Unknown')}\n"
+                    f"{icon} <b>Merged | {repo_full_name} #{pr_number}</b>\n"
+                    f"<b>+{additions}</b> <b>-{deletions}</b>\n\n"
+                    f"<b>{pr_title}</b>\n\n"
                 )
                 if pr_body:
-                    message += f"📝 {pr_body}\n"
-                message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
+                    message += f"{pr_body}\n\n"
+                message += (
+                    f"👤 <b>{sender.get('login', 'Unknown')}</b> merged {commits_count} commit(s) from "
+                    f"<code>{head_branch}</code> into <code>{base_branch}</code>\n\n"
+                    f"📊 {changed_files} Files changed\n\n"
+                    f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                )
             else:
                 icon = "❌"
                 message = (
-                    f"{icon} <b>Pull Request Closed</b>\n\n"
-                    f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-                    f"👤 <b>Closed by:</b> {sender.get('login', 'Unknown')}\n"
+                    f"{icon} <b>Closed | {repo_full_name} #{pr_number}</b>\n\n"
+                    f"<b>{pr_title}</b>\n\n"
                 )
                 if pr_body:
-                    message += f"📝 {pr_body}\n"
-                message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
+                    message += f"{pr_body}\n\n"
+                message += (
+                    f"👤 <b>{sender.get('login', 'Unknown')}</b> closed this pull request\n\n"
+                    f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                )
         
         elif action == 'reopened':
             icon = "🔄"
             message = (
-                f"{icon} <b>Pull Request Reopened</b>\n\n"
-                f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-                f"👤 <b>Reopened by:</b> {sender.get('login', 'Unknown')}\n"
+                f"{icon} <b>Reopened | {repo_full_name} #{pr_number}</b>\n\n"
+                f"<b>{pr_title}</b>\n\n"
             )
             if pr_body:
-                message += f"📝 {pr_body}\n"
-            message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
+                message += f"{pr_body}\n\n"
+            message += (
+                f"👤 <b>{sender.get('login', 'Unknown')}</b> reopened this pull request\n\n"
+                f"📊 {reviewers_count} Reviewers • {comments_count + review_comments_count} Comments • "
+                f"{changed_files} Files changed\n\n"
+                f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+            )
         
         elif action == 'ready_for_review':
             icon = "👀"
             message = (
-                f"{icon} <b>Pull Request Ready for Review</b>\n\n"
-                f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-                f"👤 <b>Author:</b> {pr_author}\n"
+                f"{icon} <b>Ready for Review | {repo_full_name} #{pr_number}</b>\n"
+                f"<b>+{additions}</b> <b>-{deletions}</b>\n\n"
+                f"<b>{pr_title}</b>\n\n"
             )
             if pr_body:
-                message += f"📝 {pr_body}\n"
-            message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
+                message += f"{pr_body}\n\n"
+            message += (
+                f"👤 <b>{pr_author}</b> wants to merge {commits_count} commit(s) from "
+                f"<code>{head_branch}</code> into <code>{base_branch}</code>\n\n"
+                f"📊 {reviewers_count} Reviewers • {comments_count + review_comments_count} Comments • "
+                f"{changed_files} Files changed\n\n"
+                f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+            )
         
         else:
             # Skip other actions
@@ -174,10 +210,10 @@ def github_webhook():
             return jsonify({"status": "ignored"}), 200
         
         message = (
-            f"{icon} <b>PR Review: {state_text}</b>\n\n"
-            f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-            f"👤 <b>Reviewer:</b> {reviewer}\n"
-            f"🔗 <a href=\"{pr_url}\">View PR</a>"
+            f"{icon} <b>Review {state_text} | {repo.get('full_name', 'Unknown')} #{pr_number}</b>\n\n"
+            f"<b>{pr_title}</b>\n\n"
+            f"👤 <b>{reviewer}</b> {state_text.lower()} this pull request\n\n"
+            f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
         )
         
         send_telegram_message(message)
@@ -202,11 +238,11 @@ def github_webhook():
         comment_body = comment.get('body', '')[:100]  # First 100 chars
         
         message = (
-            f"💬 <b>New Review Comment</b>\n\n"
-            f"📦 <b>{repo_name}</b> | <b>#{pr_number}</b> {pr_title}\n"
-            f"👤 <b>By:</b> {commenter}\n"
-            f"💭 {comment_body}...\n"
-            f"🔗 <a href=\"{pr_url}\">View PR</a>"
+            f"💬 <b>New Comment | {repo.get('full_name', 'Unknown')} #{pr_number}</b>\n\n"
+            f"<b>{pr_title}</b>\n\n"
+            f"👤 <b>{commenter}</b> commented:\n"
+            f"💭 <i>{comment_body}...</i>\n\n"
+            f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
         )
         
         send_telegram_message(message)
