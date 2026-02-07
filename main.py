@@ -27,8 +27,8 @@ def verify_signature(payload_body, signature_header):
     expected_signature = "sha256=" + hash_object.hexdigest()
     return hmac.compare_digest(expected_signature, signature_header)
 
-def send_telegram_message(text):
-    """Send message to Telegram topic"""
+def send_telegram_message(text, buttons=None):
+    """Send message to Telegram topic with optional inline buttons"""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     data = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -37,6 +37,11 @@ def send_telegram_message(text):
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
+    
+    if buttons:
+        data["reply_markup"] = {
+            "inline_keyboard": buttons
+        }
     
     try:
         response = requests.post(url, json=data, timeout=10)
@@ -93,6 +98,14 @@ def github_webhook():
             if len(pr_body) > 200:
                 pr_body = pr_body[:200] + "..."
         
+        # Create inline buttons
+        buttons = [
+            [
+                {"text": "View pull request", "url": pr_url},
+                {"text": "Comment", "url": pr_url}
+            ]
+        ]
+        
         # Format message based on action
         if action == 'opened':
             icon = "🆕"
@@ -107,8 +120,7 @@ def github_webhook():
                 f"👤 <b>{pr_author}</b> wants to merge {commits_count} commit(s) from "
                 f"<code>{head_branch}</code> into <code>{base_branch}</code>\n\n"
                 f"📊 {reviewers_count} Reviewers • {comments_count + review_comments_count} Comments • "
-                f"{changed_files} Files changed\n\n"
-                f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                f"{changed_files} Files changed"
             )
         
         elif action == 'closed':
@@ -124,8 +136,7 @@ def github_webhook():
                 message += (
                     f"👤 <b>{sender.get('login', 'Unknown')}</b> merged {commits_count} commit(s) from "
                     f"<code>{head_branch}</code> into <code>{base_branch}</code>\n\n"
-                    f"📊 {changed_files} Files changed\n\n"
-                    f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                    f"📊 {changed_files} Files changed"
                 )
             else:
                 icon = "❌"
@@ -136,8 +147,7 @@ def github_webhook():
                 if pr_body:
                     message += f"{pr_body}\n\n"
                 message += (
-                    f"👤 <b>{sender.get('login', 'Unknown')}</b> closed this pull request\n\n"
-                    f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                    f"👤 <b>{sender.get('login', 'Unknown')}</b> closed this pull request"
                 )
         
         elif action == 'reopened':
@@ -151,8 +161,7 @@ def github_webhook():
             message += (
                 f"👤 <b>{sender.get('login', 'Unknown')}</b> reopened this pull request\n\n"
                 f"📊 {reviewers_count} Reviewers • {comments_count + review_comments_count} Comments • "
-                f"{changed_files} Files changed\n\n"
-                f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                f"{changed_files} Files changed"
             )
         
         elif action == 'ready_for_review':
@@ -168,15 +177,14 @@ def github_webhook():
                 f"👤 <b>{pr_author}</b> wants to merge {commits_count} commit(s) from "
                 f"<code>{head_branch}</code> into <code>{base_branch}</code>\n\n"
                 f"📊 {reviewers_count} Reviewers • {comments_count + review_comments_count} Comments • "
-                f"{changed_files} Files changed\n\n"
-                f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+                f"{changed_files} Files changed"
             )
         
         else:
             # Skip other actions
             return jsonify({"status": "ignored"}), 200
         
-        send_telegram_message(message)
+        send_telegram_message(message, buttons)
         return jsonify({"status": "success"}), 200
     
     # Handle pull request review events
@@ -209,14 +217,21 @@ def github_webhook():
         else:
             return jsonify({"status": "ignored"}), 200
         
+        # Create inline buttons
+        buttons = [
+            [
+                {"text": "View pull request", "url": pr_url},
+                {"text": "Comment", "url": pr_url}
+            ]
+        ]
+        
         message = (
             f"{icon} <b>Review {state_text} | {repo.get('full_name', 'Unknown')} #{pr_number}</b>\n\n"
             f"<b>{pr_title}</b>\n\n"
-            f"👤 <b>{reviewer}</b> {state_text.lower()} this pull request\n\n"
-            f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+            f"👤 <b>{reviewer}</b> {state_text.lower()} this pull request"
         )
         
-        send_telegram_message(message)
+        send_telegram_message(message, buttons)
         return jsonify({"status": "success"}), 200
     
     # Handle pull request review comment events
@@ -237,15 +252,22 @@ def github_webhook():
         commenter = comment.get('user', {}).get('login', 'Unknown')
         comment_body = comment.get('body', '')[:100]  # First 100 chars
         
+        # Create inline buttons
+        buttons = [
+            [
+                {"text": "View pull request", "url": pr_url},
+                {"text": "Comment", "url": pr_url}
+            ]
+        ]
+        
         message = (
             f"💬 <b>New Comment | {repo.get('full_name', 'Unknown')} #{pr_number}</b>\n\n"
             f"<b>{pr_title}</b>\n\n"
             f"👤 <b>{commenter}</b> commented:\n"
-            f"💭 <i>{comment_body}...</i>\n\n"
-            f"🔗 <a href=\"{pr_url}\">View Pull Request</a>"
+            f"💭 <i>{comment_body}...</i>"
         )
         
-        send_telegram_message(message)
+        send_telegram_message(message, buttons)
         return jsonify({"status": "success"}), 200
     
     return jsonify({"status": "event_type_not_supported"}), 200
