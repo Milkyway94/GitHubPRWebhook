@@ -70,6 +70,12 @@ def github_webhook():
         pr_author = pr.get('user', {}).get('login', 'Unknown')
         pr_state = pr.get('state', '')
         merged = pr.get('merged', False)
+        pr_body = pr.get('body', '').strip()
+        
+        # Truncate description if too long
+        if pr_body:
+            if len(pr_body) > 300:
+                pr_body = pr_body[:300] + "..."
         
         # Format message based on action
         if action == 'opened':
@@ -78,8 +84,10 @@ def github_webhook():
                 f"{icon} <b>New Pull Request</b>\n\n"
                 f"<b>#{pr_number}</b> {pr_title}\n"
                 f"👤 <b>Author:</b> {pr_author}\n"
-                f"🔗 <a href=\"{pr_url}\">View PR</a>"
             )
+            if pr_body:
+                message += f"📝 {pr_body}\n"
+            message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
         
         elif action == 'closed':
             if merged:
@@ -88,16 +96,20 @@ def github_webhook():
                     f"{icon} <b>Pull Request Merged</b>\n\n"
                     f"<b>#{pr_number}</b> {pr_title}\n"
                     f"👤 <b>Merged by:</b> {sender.get('login', 'Unknown')}\n"
-                    f"🔗 <a href=\"{pr_url}\">View PR</a>"
                 )
+                if pr_body:
+                    message += f"📝 {pr_body}\n"
+                message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
             else:
                 icon = "❌"
                 message = (
                     f"{icon} <b>Pull Request Closed</b>\n\n"
                     f"<b>#{pr_number}</b> {pr_title}\n"
                     f"👤 <b>Closed by:</b> {sender.get('login', 'Unknown')}\n"
-                    f"🔗 <a href=\"{pr_url}\">View PR</a>"
                 )
+                if pr_body:
+                    message += f"📝 {pr_body}\n"
+                message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
         
         elif action == 'reopened':
             icon = "🔄"
@@ -105,8 +117,10 @@ def github_webhook():
                 f"{icon} <b>Pull Request Reopened</b>\n\n"
                 f"<b>#{pr_number}</b> {pr_title}\n"
                 f"👤 <b>Reopened by:</b> {sender.get('login', 'Unknown')}\n"
-                f"🔗 <a href=\"{pr_url}\">View PR</a>"
             )
+            if pr_body:
+                message += f"📝 {pr_body}\n"
+            message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
         
         elif action == 'ready_for_review':
             icon = "👀"
@@ -114,8 +128,10 @@ def github_webhook():
                 f"{icon} <b>Pull Request Ready for Review</b>\n\n"
                 f"<b>#{pr_number}</b> {pr_title}\n"
                 f"👤 <b>Author:</b> {pr_author}\n"
-                f"🔗 <a href=\"{pr_url}\">View PR</a>"
             )
+            if pr_body:
+                message += f"📝 {pr_body}\n"
+            message += f"🔗 <a href=\"{pr_url}\">View PR</a>"
         
         else:
             # Skip other actions
