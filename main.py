@@ -270,6 +270,59 @@ def github_webhook():
         send_telegram_message(message, buttons)
         return jsonify({"status": "success"}), 200
     
+    # Handle workflow job events
+    elif event_type == 'workflow_job':
+        action = payload.get('action', '')
+        workflow_job = payload.get('workflow_job', {})
+        repo = payload.get('repository', {})
+        
+        repo_full_name = repo.get('full_name', 'Unknown')
+        job_name = workflow_job.get('name', 'Unknown Job')
+        job_status = workflow_job.get('status', '')
+        job_conclusion = workflow_job.get('conclusion', '')
+        workflow_name = workflow_job.get('workflow_name', 'Unknown Workflow')
+        job_url = workflow_job.get('html_url', '')
+        started_at = workflow_job.get('started_at', '')
+        completed_at = workflow_job.get('completed_at', '')
+        
+        # Only notify on completed jobs
+        if action == 'completed':
+            if job_conclusion == 'success':
+                icon = "✅"
+                status_text = "Passed"
+            elif job_conclusion == 'failure':
+                icon = "❌"
+                status_text = "Failed"
+            elif job_conclusion == 'cancelled':
+                icon = "⚠️"
+                status_text = "Cancelled"
+            elif job_conclusion == 'skipped':
+                icon = "⏭️"
+                status_text = "Skipped"
+            else:
+                # Unknown conclusion, skip
+                return jsonify({"status": "ignored"}), 200
+            
+            # Create inline buttons
+            buttons = [
+                [
+                    {"text": "View workflow", "url": job_url}
+                ]
+            ]
+            
+            message = (
+                f"{icon} <b>Workflow {status_text} | {repo_full_name}</b>\n\n"
+                f"<b>{workflow_name}</b>\n"
+                f"Job: <code>{job_name}</code>\n"
+                f"Status: <b>{status_text}</b>"
+            )
+            
+            send_telegram_message(message, buttons)
+            return jsonify({"status": "success"}), 200
+        else:
+            # Skip queued/in_progress actions
+            return jsonify({"status": "ignored"}), 200
+    
     return jsonify({"status": "event_type_not_supported"}), 200
 
 @app.route('/health', methods=['GET'])
